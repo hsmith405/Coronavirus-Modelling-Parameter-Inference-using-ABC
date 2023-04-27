@@ -1,0 +1,57 @@
+library(tidyverse)
+
+#take 10000 samples from a normal distribution with mean 4 and sd 1.
+data <- rnorm(n = 10000, mean = 4, sd = 1)
+
+meandata <- mean(data)
+sddata <- sd(data)
+
+#the priors for the mean and sd are uniform
+#draws a value for the mean between 0 and 5
+draw_mean <- function () {
+  return (runif(1, min=0, max=5))
+}
+#draws a value of the sd between 0 and 5
+draw_sd <- function () {
+  return (runif(1, min=0, max=5))
+}
+
+sample_by_rejection <- function (true_mean, true_sd, N, threshold) {
+  accepted_means <- vector(mode = "numeric")
+  accepted_sds <- vector (mode = "numeric")
+  for (i in 1:N){
+    mean <- draw_mean()
+    sd <- draw_sd()
+    simulated_data <- rnorm(n=10000, mean = mean, sd = sd)
+    sim_mean <- mean(simulated_data)
+    sim_sd <- sd(simulated_data)
+    distance = ((true_mean - sim_mean)^2)*((true_sd - sim_sd)^2)
+    if (distance < threshold) {
+      accepted_means = append(accepted_means,mean)
+      accepted_sds = append(accepted_sds,sd)
+    }
+  }
+  return(data.frame(accepted_means, accepted_sds))
+}
+
+parameter_estimates <- sample_by_rejection(true_mean = meandata, true_sd = sddata, N = 10000, threshold = 0.01)
+
+
+ggplot(parameter_estimates, aes(x = accepted_means))+
+  geom_histogram(aes(y=..density..), binwidth = 0.1, color="black", fill="red")+
+  geom_density(alpha=.2, fill="#7E38B7")+
+  xlim(0,5)+
+  labs(x="Accepted mean values", y="Density", title= "Distribution of accepted mean values")+
+  theme(axis.text=element_text(size=25),
+        axis.title=element_text(size=25),
+        title=element_text(size=22, face="bold"))
+
+
+ggplot(parameter_estimates, aes(x = accepted_sds))+
+  geom_histogram(aes(y=..density..), binwidth = 0.1, color="black", fill="lightblue")+
+  geom_density(alpha=.2, fill="blue")+
+  xlim(0,5)+
+  labs(x="Accepted standard deviation values", y="Density", title= "Distribution of accepted standard deviation values")+
+  theme(axis.text=element_text(size=25),
+        axis.title=element_text(size=25),
+        title=element_text(size=18, face="bold"))
